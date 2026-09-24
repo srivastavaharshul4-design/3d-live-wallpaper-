@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HS Studio - 3D & Video Wallpaper Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: { brand: { 50:'#eef2ff',500:'#6366f1',600:'#4f46e5',700:'#4338ca',900:'#1e1b4b' } }
+        }
+      }
+    };
+  </script>
+  <style>
+    ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#0f172a}::-webkit-scrollbar-thumb{background:#334155;border-radius:9999px}::-webkit-scrollbar-thumb:hover{background:#6366f1}
+    .phone-notch{width:120px;height:24px;background:#000;border-bottom-left-radius:14px;border-bottom-right-radius:14px;position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:40}
+    .aspect-mode-cover{object-fit:cover;width:100%;height:100%}.aspect-mode-contain{object-fit:contain;width:100%;height:100%;background:#000}
+    .aspect-mode-fill{object-fit:fill;width:100%;height:100%}.aspect-mode-ultrawide{object-fit:cover;transform:scale(1.15);width:100%;height:100%}
+    .aspect-mode-portrait{object-fit:cover;transform:scale(.9);width:100%;height:100%}
+    .aspect-mode-fitwidth{width:100%;height:auto;object-fit:cover;max-height:100%}
+    .glass-panel{background:rgba(15,23,42,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1)}
+    .glass-card{background:rgba(30,41,59,.6);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08)}
+    input[type=range]{accent-color:#6366f1}
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-brand-500 selection:text-white overflow-x-hidden">
+<header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="resetStudioView()">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-brand-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/20"><i class="fa-solid fa-cube text-xl text-white"></i></div>
+      <div><h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">HS Wallpaper Studio</h1><p class="text-xs text-indigo-400/90 font-medium">Android APK & PWA Runner</p></div>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <label class="cursor-pointer px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-200 border border-slate-700 flex items-center gap-2 transition-all shadow-sm">
+        <i class="fa-solid fa-upload text-indigo-400"></i><span class="hidden sm:inline">Upload Video</span>
+        <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="handleUserVideoUpload(event)">
+      </label>
+      <button onclick="togglePhoneSimulatorModal(true)" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs sm:text-sm font-bold text-white shadow-lg shadow-indigo-500/25 flex items-center gap-2 transition-all"><i class="fa-solid fa-mobile-screen"></i><span>Live Simulator</span></button>
+      <button onclick="openAppModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs sm:text-sm font-semibold text-slate-200 border border-slate-700 flex items-center gap-2 transition-all"><i class="fa-solid fa-download text-emerald-400"></i><span class="hidden md:inline">Export APK</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+  <div class="glass-panel rounded-2xl p-4 sm:p-5 border border-indigo-500/25 shadow-xl relative overflow-hidden">
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0"><i class="fa-solid fa-expand text-indigo-400 text-lg"></i></div>
+        <div><div class="flex items-center gap-2 flex-wrap"><h2 class="text-base sm:text-lg font-bold text-white">Video Wallpaper Aspect Ratio & Fit Engine</h2><span id="activeFitBadge" class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold border border-indigo-500/30">Mode: Cover (Fill Screen)</span></div>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">Precise viewport scaling algorithms for mobile ratio matching and letterbox prevention</p></div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end border-t lg:border-t-0 border-slate-800 pt-3 lg:pt-0">
+        <div class="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 text-xs overflow-x-auto w-full sm:w-auto">
+          <button onclick="setVideoAspectMode('cover')" id="fitBtnCover" class="fit-btn px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap">Cover (Fill)</button>
+          <button onclick="setVideoAspectMode('contain')" id="fitBtnContain" class="fit-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white whitespace-nowrap">Contain (Letterbox)</button>
+          <button onclick="setVideoAspectMode('ultrawide')" id="fitBtnUltrawide" class="fit-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white whitespace-nowrap">Ultrawide Zoom</button>
+          <button onclick="setVideoAspectMode('portrait')" id="fitBtnPortrait" class="fit-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white whitespace-nowrap">9:16 Portrait</button>
+          <button onclick="setVideoAspectMode('fill')" id="fitBtnFill" class="fit-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white whitespace-nowrap">Stretch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-1.5 p-1 bg-slate-900/80 border border-slate-800 rounded-2xl w-full sm:w-auto overflow-x-auto">
+      <button onclick="filterCategory('all')" id="tabAll" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white">All Wallpapers</button>
+      <button onclick="filterCategory('3d')" id="tab3d" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200">Interactive 3D</button>
+      <button onclick="filterCategory('video')" id="tabVideo" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200">HD Videos</button>
+      <button onclick="filterCategory('custom')" id="tabCustom" class="cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200">Custom Uploads</button>
+    </div>
+    <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+      <button id="masterMuteBtn" onclick="toggleMasterAudio()" class="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:bg-slate-800 text-xs sm:text-sm font-medium text-slate-300 flex items-center gap-2 transition-all"><i class="fa-solid fa-volume-xmark text-red-400" id="muteIcon"></i><span id="muteLabel">Muted</span></button>
+      <div class="relative flex-1 sm:w-64"><i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i><input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search wallpapers..." class="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"></div>
+    </div>
+  </div>
+
+  <div id="wallpaperGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+</main>
+
+<div id="phoneSimulatorModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden items-center justify-center p-2 sm:p-4 overflow-y-auto">
+  <div class="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row my-auto max-h-[92vh]">
+    <div class="flex-1 bg-slate-950 p-6 flex items-center justify-center relative min-h-[420px] md:min-h-[580px] border-b md:border-b-0 md:border-r border-slate-800">
+      <div id="phoneChassis" class="w-[260px] sm:w-[290px] h-[520px] sm:h-[570px] bg-black rounded-[42px] border-[10px] border-slate-800 shadow-2xl relative overflow-hidden flex flex-col">
+        <div class="phone-notch flex items-center justify-center gap-2 px-2"><div class="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-700"></div><div class="w-10 h-1.5 rounded-full bg-slate-900 border border-slate-800"></div></div>
+        <div class="absolute top-2 left-6 right-6 flex items-center justify-between text-[11px] font-semibold text-white/90 z-30 pointer-events-none"><span id="simStatusTime">9:41</span><div class="flex items-center gap-1.5"><i class="fa-solid fa-signal text-[10px]"></i><i class="fa-solid fa-wifi text-[10px]"></i><i class="fa-solid fa-battery-full text-xs"></i></div></div>
+        <div id="phoneViewport" class="absolute inset-0 z-10 w-full h-full bg-black flex items-center justify-center overflow-hidden">
+          <video id="simVideoPlayer" class="aspect-mode-cover hidden" loop playsinline></video>
+          <canvas id="sim3dCanvas" class="w-full h-full block hidden"></canvas>
+        </div>
+        <div class="absolute inset-0 z-20 flex flex-col justify-between p-6 pointer-events-none text-white text-center pt-12">
+          <div><p id="simDate" class="text-xs font-semibold uppercase tracking-widest text-indigo-200/80">Thursday, Sep 24</p><h3 id="simClock" class="text-5xl font-extrabold tracking-tight mt-1 text-white/95 drop-shadow-md">09:41</h3></div>
+          <div class="space-y-3 pb-2"><div class="mx-auto w-32 h-1 bg-white/40 rounded-full"></div><p class="text-[10px] tracking-widest text-white/60 font-medium uppercase">Swipe up to unlock</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="w-full md:w-[360px] p-6 space-y-5 overflow-y-auto bg-slate-900/90 flex flex-col justify-between">
+      <div class="space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800"><div><h3 class="font-bold text-lg text-white">Live Phone Simulator</h3><p class="text-xs text-slate-400" id="simWallpaperTitle">Select a wallpaper</p></div><button onclick="togglePhoneSimulatorModal(false)" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button></div>
+        <div class="space-y-3"><label class="text-xs font-bold text-slate-300 uppercase tracking-wider block">Visual Fine Tuning</label>
+          <div class="space-y-2.5 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+            <div><div class="flex justify-between text-xs text-slate-400 mb-1"><span>Brightness</span><span id="brightnessVal">100%</span></div><input type="range" min="50" max="150" value="100" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer" oninput="updateFilter('brightness', this.value)"></div>
+            <div><div class="flex justify-between text-xs text-slate-400 mb-1"><span>Blur Effect</span><span id="blurVal">0px</span></div><input type="range" min="0" max="10" value="0" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer" oninput="updateFilter('blur', this.value)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pt-4 border-t border-slate-800 flex gap-2"><button onclick="applyToMainBackground()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs sm:text-sm text-white transition-all">Set Live</button><button onclick="openAppModal()" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs sm:text-sm text-slate-200 transition-all">APK Export</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="appModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+  <div class="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative max-h-[90vh] overflow-y-auto">
+    <button onclick="closeAppModal()" class="absolute top-6 right-6 w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    <div class="flex items-center gap-3"><div class="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-2xl"><i class="fa-solid fa-mobile-retro"></i></div><div><h2 class="text-xl font-bold text-white">APK Source & Installation Hub</h2><p class="text-xs text-slate-400">Download compiled package files for Android APK creation</p></div></div>
+    <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-4 space-y-3"><div class="flex items-center justify-between gap-3"><div><h4 class="font-bold text-sm text-white">Export index.html Source</h4><p class="text-xs text-slate-300">Save the complete standalone application file</p></div><button onclick="downloadHtmlSource()" class="shrink-0 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white shadow-md transition-all"><i class="fa-solid fa-download mr-1.5"></i> Download</button></div></div>
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-2 text-xs"><h4 class="font-bold text-slate-200 flex items-center gap-2"><i class="fa-solid fa-circle-info text-indigo-400"></i>Android APK note</h4><p class="text-slate-400">This HTML file can be hosted as a web app/PWA. Creating a real Android APK requires a wrapper/build service such as PWABuilder or an Android WebView project.</p></div>
+  </div>
+</div>
+<div id="toastContainer" class="fixed bottom-5 right-5 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+'use strict';
+
+const state = {
+  wallpapers: [],
+  filteredWallpapers: [],
+  activeWallpaper: null,
+  activeCategory: 'all',
+  searchQuery: '',
+  isMuted: true,
+  videoAspectMode: 'cover',
+  filters: { brightness: 100, blur: 0 },
+  objectUrls: new Set(),
+  animationId: null
+};
+
+const defaultWallpapers = [
+  {id:'wp_cyber_matrix',title:'Cyberpunk Matrix Grid',category:'3d',type:'3d_matrix',author:'HS Studio FX',aspectRatio:'19.5:9 Mobile'},
+  {id:'wp_plasma_flow',title:'Liquid Plasma Dynamics',category:'video',type:'procedural_video_plasma',src:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',author:'Motion Master',aspectRatio:'16:9 HD Video'},
+  {id:'wp_neon_tunnel',title:'Hyperdrive Neon Warp',category:'3d',type:'3d_tunnel',author:'HS Studio FX',aspectRatio:'19.5:9 Mobile'},
+  {id:'wp_cosmos_particles',title:'Cosmic Dust Particles',category:'3d',type:'3d_particles',author:'HS Studio FX',aspectRatio:'9:16 Mobile'}
+];
+
+window.addEventListener('DOMContentLoaded', init);
+
+function init() {
+  loadSavedWallpapers();
+  updateClock();
+  setInterval(updateClock, 1000);
+  showToast('APK Studio Runner Initialized 🚀');
+}
+
+function loadSavedWallpapers() {
+  let customs = [];
+  try {
+    const saved = localStorage.getItem('hs_wallpaper_customs');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) customs = parsed;
+    }
+  } catch(e) { console.warn('Could not restore saved custom wallpapers.', e); }
+  // Data URLs for large videos can exceed localStorage. Restore only valid metadata/src.
+  state.wallpapers = [...customs, ...defaultWallpapers];
+  state.filteredWallpapers = [...state.wallpapers];
+  state.activeWallpaper = state.wallpapers[0] || null;
+  renderWallpaperCards();
+}
+
+function saveCustomWallpapers() {
+  try {
+    const customs = state.wallpapers.filter(wp => wp.category === 'custom');
+    localStorage.setItem('hs_wallpaper_customs', JSON.stringify(customs));
+  } catch(e) {
+    console.warn('Custom video is too large for localStorage; keeping it for this session only.');
+    showToast('Large video kept for this session only.');
+  }
+}
+
+function renderWallpaperCards() {
+  const grid = document.getElementById('wallpaperGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!state.filteredWallpapers.length) {
+    grid.innerHTML = '<div class="col-span-full text-center py-16 text-slate-500"><i class="fa-solid fa-magnifying-glass text-3xl mb-3"></i><p>No wallpapers found.</p></div>';
+    return;
+  }
+
+  state.filteredWallpapers.forEach(wp => {
+    const isVideo = wp.category === 'video' || wp.category === 'custom' || String(wp.type || '').startsWith('procedural_video');
+    const card = document.createElement('div');
+    card.className = 'glass-card rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all duration-300 flex flex-col group shadow-lg';
+    const fitClass = getFitCSSClass(state.videoAspectMode);
+    const media = isVideo
+      ? `<video data-preview-video="${escapeAttr(wp.id)}" src="${escapeAttr(wp.src || '')}" class="${fitClass} transition-transform duration-500 group-hover:scale-105" loop muted playsinline preload="metadata"></video>`
+      : `<div class="w-full h-full bg-gradient-to-tr from-indigo-950 via-slate-900 to-purple-950 flex items-center justify-center relative overflow-hidden"><i class="fa-solid fa-cube text-5xl text-indigo-500/30 group-hover:scale-110 transition-transform duration-500"></i><span class="absolute bottom-3 left-3 px-2 py-1 rounded-lg bg-black/30 text-[10px] text-indigo-200">Interactive 3D</span></div>`;
+
+    card.innerHTML = `
+      <div class="relative h-52 bg-slate-950 overflow-hidden cursor-pointer" onclick="openWallpaperPreview('${escapeAttr(wp.id)}')">
+        ${media}
+        <div class="absolute top-3 left-3 flex gap-1.5 pointer-events-none"><span class="px-2 py-0.5 rounded-lg bg-slate-900/80 text-indigo-300 text-[10px] font-bold border border-slate-700/80">${escapeHtml(wp.aspectRatio)}</span></div>
+        <button type="button" aria-label="Preview" class="absolute bottom-3 right-3 w-9 h-9 rounded-xl bg-slate-900/80 hover:bg-indigo-600 text-white flex items-center justify-center transition-all"><i class="fa-solid fa-play text-xs"></i></button>
+      </div>
+      <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+        <div><h3 class="font-bold text-sm text-white group-hover:text-indigo-300 transition-colors">${escapeHtml(wp.title)}</h3><p class="text-xs text-slate-400 mt-0.5">By ${escapeHtml(wp.author)}</p></div>
+        <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+          <button onclick="openWallpaperPreview('${escapeAttr(wp.id)}')" class="flex-1 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Preview</button>
+          <button onclick="applyToMainBackground('${escapeAttr(wp.id)}')" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Apply</button>
+          ${wp.category === 'custom' ? `<button onclick="downloadCustomWallpaper('${escapeAttr(wp.id)}')" title="Download Video File" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white flex items-center justify-center text-xs"><i class="fa-solid fa-download"></i></button>` : ''}
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll('video').forEach(v => {
+    v.addEventListener('error', () => {
+      const wrap = v.parentElement;
+      v.style.display = 'none';
+      const msg = document.createElement('div');
+      msg.className = 'absolute inset-0 flex items-center justify-center text-xs text-slate-500 bg-slate-950';
+      msg.textContent = 'Video unavailable';
+      wrap.appendChild(msg);
+    }, {once:true});
+    v.play().catch(()=>{});
+  });
+}
+
+function getFitCSSClass(mode) {
+  return ({cover:'aspect-mode-cover',contain:'aspect-mode-contain',ultrawide:'aspect-mode-ultrawide',portrait:'aspect-mode-portrait',fill:'aspect-mode-fill'})[mode] || 'aspect-mode-cover';
+}
+
+function setVideoAspectMode(mode) {
+  if (!['cover','contain','ultrawide','portrait','fill'].includes(mode)) return;
+  state.videoAspectMode = mode;
+  document.querySelectorAll('.fit-btn').forEach(btn => {
+    btn.className = 'fit-btn px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-white whitespace-nowrap';
+  });
+  const active = document.getElementById('fitBtn' + mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (active) active.className = 'fit-btn px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow-sm whitespace-nowrap';
+  document.getElementById('activeFitBadge').innerText = 'Mode: ' + mode.charAt(0).toUpperCase() + mode.slice(1);
+  const simVideo = document.getElementById('simVideoPlayer');
+  if (simVideo) {
+    const hidden = simVideo.classList.contains('hidden');
+    simVideo.className = getFitCSSClass(mode) + (hidden ? ' hidden' : '');
+    applyCurrentFilter();
+  }
+  renderWallpaperCards();
+  showToast('Aspect Mode: ' + mode.toUpperCase() + ' ✨');
+}
+
+function filterCategory(cat) {
+  state.activeCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(btn => btn.className = 'cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200');
+  const active = document.getElementById('tab' + cat.charAt(0).toUpperCase() + cat.slice(1));
+  if (active) active.className = 'cat-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white';
+  applyFilters();
+}
+
+function handleSearch() {
+  state.searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+  applyFilters();
+}
+
+function applyFilters() {
+  state.filteredWallpapers = state.wallpapers.filter(wp => {
+    const categoryOK = state.activeCategory === 'all' || wp.category === state.activeCategory;
+    const queryOK = !state.searchQuery || [wp.title, wp.author, wp.category].join(' ').toLowerCase().includes(state.searchQuery);
+    return categoryOK && queryOK;
+  });
+  renderWallpaperCards();
+}
+
+function openWallpaperPreview(wpId) {
+  const wp = state.wallpapers.find(w => w.id === wpId);
+  if (!wp) return;
+  state.activeWallpaper = wp;
+  document.getElementById('simWallpaperTitle').innerText = `${wp.title} (${String(wp.category).toUpperCase()})`;
+  const simVideo = document.getElementById('simVideoPlayer');
+  const simCanvas = document.getElementById('sim3dCanvas');
+  stop3dAnimation();
+
+  if (wp.category === 'video' || wp.category === 'custom' || String(wp.type).startsWith('procedural_video')) {
+    simCanvas.classList.add('hidden');
+    simVideo.classList.remove('hidden');
+    simVideo.pause();
+    simVideo.src = wp.src || '';
+    simVideo.load();
+    simVideo.muted = state.isMuted;
+    simVideo.className = getFitCSSClass(state.videoAspectMode);
+    applyCurrentFilter();
+    simVideo.play().catch(() => showToast('Tap the simulator if playback is blocked.'));
+  } else {
+    simVideo.pause();
+    simVideo.removeAttribute('src');
+    simVideo.load();
+    simVideo.classList.add('hidden');
+    simCanvas.classList.remove('hidden');
+    render3dCanvasPreview(simCanvas, wp.type);
+  }
+  togglePhoneSimulatorModal(true);
+}
+
+function render3dCanvasPreview(canvas, type) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.floor(rect.width * dpr));
+  const h = Math.max(1, Math.floor(rect.height * dpr));
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const particles = Array.from({length:70}, () => ({
+    x:Math.random()*w,y:Math.random()*h,r:(Math.random()*2+0.5)*dpr,
+    vx:(Math.random()-.5)*1.2*dpr,vy:(Math.random()-.5)*1.2*dpr
+  }));
+  function loop() {
+    if (canvas.classList.contains('hidden')) { state.animationId = null; return; }
+    ctx.fillStyle = 'rgba(15,23,42,0.22)';
+    ctx.fillRect(0,0,w,h);
+    const cx=w/2, cy=h/2;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x<0 || p.x>w) p.vx*=-1;
+      if (p.y<0 || p.y>h) p.vy*=-1;
+      ctx.beginPath();
+      if (type === '3d_tunnel') {
+        const dx=p.x-cx, dy=p.y-cy, pulse=(Math.sin(Date.now()/700+p.x/50)+1)*.5;
+        ctx.arc(cx+dx*(1+pulse*.03), cy+dy*(1+pulse*.03), p.r, 0, Math.PI*2);
+      } else {
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      }
+      ctx.fillStyle = '#818cf8'; ctx.fill();
+    });
+    state.animationId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function stop3dAnimation() {
+  if (state.animationId) cancelAnimationFrame(state.animationId);
+  state.animationId = null;
+}
+
+function togglePhoneSimulatorModal(show) {
+  const modal = document.getElementById('phoneSimulatorModal');
+  const simVideo = document.getElementById('simVideoPlayer');
+  if (show) {
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+  } else {
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+    if (simVideo) simVideo.pause();
+    stop3dAnimation();
+  }
+}
+
+function handleUserVideoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('video/')) { showToast('Please select a video file.'); return; }
+  const oldInput = event.target;
+  const objectUrl = URL.createObjectURL(file);
+  state.objectUrls.add(objectUrl);
+  const customWp = {
+    id:'wp_custom_' + Date.now(),
+    title:file.name.replace(/\.[^/.]+$/,'') || 'Custom Video',
+    category:'custom', type:'procedural_video_custom', src:objectUrl,
+    author:'User Upload', aspectRatio:'Custom Video', fileName:file.name
+  };
+  state.wallpapers.unshift(customWp);
+  // Do not store Blob URLs in localStorage; they stop working after reload.
+  filterCategory('custom');
+  openWallpaperPreview(customWp.id);
+  showToast('Custom video loaded successfully! 🎬');
+  oldInput.value = '';
+}
+
+function downloadCustomWallpaper(wpId) {
+  const wp = state.wallpapers.find(w => w.id === wpId);
+  if (!wp || !wp.src) return;
+  const a = document.createElement('a');
+  a.href = wp.src;
+  a.download = (wp.title || 'wallpaper').replace(/[^\w\-]+/g,'_') + '.mp4';
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('Downloading video file... 📥');
+}
+
+function toggleMasterAudio() {
+  state.isMuted = !state.isMuted;
+  const simVideo = document.getElementById('simVideoPlayer');
+  if (simVideo) {
+    simVideo.muted = state.isMuted;
+    if (!state.isMuted) simVideo.play().catch(()=>{});
+  }
+  document.getElementById('muteIcon').className = state.isMuted ? 'fa-solid fa-volume-xmark text-red-400' : 'fa-solid fa-volume-high text-emerald-400';
+  document.getElementById('muteLabel').innerText = state.isMuted ? 'Muted' : 'Audio Live';
+  showToast(state.isMuted ? 'Audio Muted' : 'Audio Enabled 🔊');
+}
+
+function updateFilter(type, val) {
+  const num = Number(val);
+  if (!Number.isFinite(num)) return;
+  state.filters[type] = num;
+  document.getElementById(type + 'Val').innerText = type === 'blur' ? `${num}px` : `${num}%`;
+  applyCurrentFilter();
+}
+
+function applyCurrentFilter() {
+  const filter = `brightness(${state.filters.brightness}%) blur(${state.filters.blur}px)`;
+  const simVideo = document.getElementById('simVideoPlayer');
+  const simCanvas = document.getElementById('sim3dCanvas');
+  if (simVideo) simVideo.style.filter = filter;
+  if (simCanvas) simCanvas.style.filter = filter;
+}
+
+function applyToMainBackground(wpId) {
+  if (wpId) {
+    const wp = state.wallpapers.find(w => w.id === wpId);
+    if (wp) { state.activeWallpaper = wp; openWallpaperPreview(wp.id); }
+  }
+  showToast('Wallpaper selected as active live wallpaper ✨');
+  togglePhoneSimulatorModal(false);
+}
+
+function openAppModal() { const el=document.getElementById('appModal'); el.classList.remove('hidden'); el.classList.add('flex'); }
+function closeAppModal() { const el=document.getElementById('appModal'); el.classList.add('hidden'); el.classList.remove('flex'); }
+
+function downloadHtmlSource() {
+  const html = '<!DOCTYPE html>\\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = 'index.html';
+  document.body.appendChild(anchor); anchor.click(); anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Downloaded index.html 📦');
+}
+
+function showToast(msg) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'px-4 py-2.5 rounded-xl bg-slate-900 text-slate-100 text-xs font-semibold border border-indigo-500/30 shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0';
+  toast.innerHTML = `<i class="fa-solid fa-circle-check text-indigo-400 mr-1.5"></i>${escapeHtml(msg)}`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.remove('translate-y-2','opacity-0'));
+  setTimeout(() => { toast.classList.add('opacity-0','translate-y-2'); setTimeout(()=>toast.remove(),300); }, 3000);
+}
+
+function updateClock() {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+  const date = now.toLocaleDateString([], {weekday:'long',month:'short',day:'numeric'});
+  const clock = document.getElementById('simClock'), status = document.getElementById('simStatusTime'), dateEl=document.getElementById('simDate');
+  if (clock) clock.textContent = time;
+  if (status) status.textContent = time;
+  if (dateEl) dateEl.textContent = date;
+}
+
+function resetStudioView() {
+  document.getElementById('searchInput').value = '';
+  state.searchQuery = '';
+  filterCategory('all');
+  showToast('Studio Reset');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(value) { return escapeHtml(value).replace(/`/g,'&#96;'); }
+
+window.addEventListener('beforeunload', () => state.objectUrls.forEach(u => URL.revokeObjectURL(u)));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeAppModal(); togglePhoneSimulatorModal(false); }
+});
+</script>
+</body>
+</html>
