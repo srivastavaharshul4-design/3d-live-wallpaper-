@@ -1,0 +1,17 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "HS live wallpaper",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Live wallpaper",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "com.hs.livewallpaper",
+  "description": "Customize your phone screen with beautiful interactive live wallpapers with audio",
+  "categories": [
+    "personalization",
+    "utilities"
+  ]
+}
